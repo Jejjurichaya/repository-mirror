@@ -1,28 +1,39 @@
-# 🪞 Repository Mirror
+# 🪞 Repository Mirror - AI GitHub Analyzer
 
-**AI-Powered GitHub Repository Evaluation System**
+[![Demo](https://img.shields.io/badge/Live-Demo-blue?logo=github)](https://jejjurichaya.github.io/repository-mirror)
+[![Score](https://img.shields.io/badge/Score-92%20Gold-brightgreen)](https://jejjurichaya.github.io/repository-mirror)
 
-[![Score](https://img.shields.io/badge/Score-92%20Gold-brightgreen)](https://yourusername.github.io/repository-mirror)
+## 🎯 Problem: AI + Code Analysis + Developer Profiling
+Students don't know how recruiters judge GitHub repos. **Repository Mirror** gives instant AI evaluation + personalized roadmap.
 
 ## 🚀 Live Demo
-https://yourusername.github.io/repository-mirror
+**[https://jejjurichaya.github.io/repository-mirror](https://jejjurichaya.github.io/repository-mirror/?v=1)**
 
-## 🎯 Features
-- Analyzes any public GitHub repo in 10 seconds
-- 6-dimension scoring (Code Quality, Structure, Docs, Tests, Git, Relevance)
-- AI-generated personalized improvement roadmap
-- Professional metrics dashboard
+**Test:** `https://github.com/facebook/react` → **92/100 🥇 Gold**
 
-## 📊 Try It
-1. Visit live demo
-2. Enter: `https://github.com/facebook/react`
-3. Get instant Gold rating + roadmap
+## 📊 Features
+- **Real GitHub API** - Live analysis (stars/commits/files)
+- **6-Dimension AI Scoring** - Code/Documentation/Structure
+- **Personalized Roadmap** - Actionable improvements
+- **Responsive Dashboard** - Mobile + Desktop
 
-## 🏆 Hackathon Deliverables
-✅ Source code  
-✅ Live demo  
-✅ Professional UI  
-✅ Real GitHub API integration  
-✅ AI roadmap generation  
+## 🏆 Evaluation Criteria (100 Points)
+| Category | Weight |
+|----------|--------|
+| Code Quality | 25 pts |
+| Project Structure | 15 pts |
+| Documentation | 15 pts |
+| Testing | 15 pts |
+| Version Control | 15 pts |
+| Real-World Use | 15 pts |
 
-**Built for: AI + Code Analysis + Developer Profiling**
+**Levels:** 🥇 Gold (71-100) | 🥈 Silver (41-70) | 🥉 Bronze (0-40)
+
+
+
+
+
+## 🎬 Screen Recording Demo (2 min)
+[Watch the screen recording demo](https://drive.google.com/file/d/1RFpw_6xzONR9OARxgPQiB_ZWQbwku3hn/view?usp=drivesdk)
+
+
