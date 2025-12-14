@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repository Mirror - AI GitHub Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🪞 Repository Mirror</h1>
+      <p>AI-Powered GitHub Repository Evaluation</p>
+    </header>
+
+    <div class="input-section">
+      <input type="url" id="repoUrl" placeholder="https://github.com/username/repo-name">
+      <button onclick="analyzeRepo()">🔍 Analyze Repository</button>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Analyzing repository... This takes ~10 seconds</p>
+    </div>
+
+    <div id="result" class="result hidden"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
