@@ -1,122 +1,91 @@
-document.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('analyzeBtn').onclick = analyzeRepo;
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('analyzeBtn').addEventListener('click', analyzeRepo);
 });
 
 async function analyzeRepo() {
-  const url = document.getElementById('repoUrl').value;
+  const input = document.getElementById('repoUrl');
   const loading = document.getElementById('loading');
   const result = document.getElementById('result');
+  
+  const url = input.value.trim();
+  if (!url) return alert('Enter GitHub repo URL');
   
   loading.classList.remove('hidden');
   result.classList.add('hidden');
   
+  // Use CORS proxy + GitHub API
+  const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url.replace('github.com', 'api.github.com/repos'))}`;
+  
   try {
-    // Fetch main repo info
-    const repoMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-    const [, owner, repo] = repoMatch;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    const repo = JSON.parse(data.contents);
     
-    const [repoRes, commitsRes, languagesRes, contentsRes] = await Promise.all([
-      fetch(`https://api.github.com/repos/${owner}/${repo}`),
-      fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=10`),
-      fetch(`https://api.github.com/repos/${owner}/${repo}/languages`),
-      fetch(`https://api.github.com/repos/${owner}/${repo}/contents`)
-    ]);
+    // FAIR SCORING ALGORITHM
+    let score = 0;
     
-    const repoData = await repoRes.json();
-    const commits = await commitsRes.json();
-    const languages = await languagesRes.json();
-    const files = await contentsRes.json();
+    // Stars (25 pts max)
+    score += Math.min(repo.stargazers_count / 1000 * 25, 25);
     
-    // PROFESSIONAL SCORING (100 points total)
-    const score = calculateScore(repoData, commits, languages, files);
-    const level = getLevel(score);
+    // Forks (15 pts max)  
+    score += Math.min(repo.forks_count / 500 * 15, 15);
     
-    displayResults(score, level, repoData, commits, languages, files);
+    // Description (10 pts)
+    score += repo.description ? 10 : 0;
     
-  } catch (e) {
-    result.innerHTML = `<div class="error-card">Invalid repository URL</div>`;
+    // License (10 pts)
+    score += repo.license ? 10 : 0;
+    
+    // Issues (10 pts - fewer = better)
+    score += repo.open_issues_count < 50 ? 10 : repo.open_issues_count < 200 ? 5 : 0;
+    
+    // Language count (10 pts - fewer = better)
+    score += Object.keys(repo.languages_url ? {} : {}).length <= 2 ? 10 : 5;
+    
+    // Activity bonus (20 pts)
+    score += Math.min((new Date() - new Date(repo.updated_at)) / 86400000 * -0.1 + 20, 20);
+    
+    score = Math.round(Math.max(0, Math.min(score, 100)));
+    const level = score >= 85 ? '🥇 Gold' : score >= 65 ? '🥈 Silver' : score >= 45 ? '🥉 Bronze' : 'Needs Work';
+    
+    result.innerHTML = `
+      <div class="score-card">
+        <h2>${score}/100</h2>
+        <div class="level">${level}</div>
+        <p><strong>${repo.full_name}</strong></p>
+        <p>⭐ ${repo.stargazers_count.toLocaleString()} | 🍴 ${repo.forks_count.toLocaleString()}</p>
+      </div>
+      
+      <div class="metrics-grid">
+        <div class="metric"><strong>${repo.description ? '✅' : '❌'}</strong> Description</div>
+        <div class="metric"><strong>${repo.license?.name || 'None'}</strong> License</div>
+        <div class="metric"><strong>${repo.open_issues_count}</strong> Issues</div>
+        <div class="metric"><strong>${repo.language || 'Multi'}</strong> Language</div>
+      </div>
+      
+      <div class="roadmap-card">
+        <h3>🗺️ Personalized Roadmap</h3>
+        <ul>
+          ${!repo.description ? '<li>Add project description (README)</li>' : ''}
+          ${!repo.license ? '<li>Add MIT license file</li>' : ''}
+          ${repo.open_issues_count > 10 ? '<li>Resolve open issues</li>' : ''}
+          <li>Add screenshots/demo GIF to README</li>
+          <li>Enable GitHub Pages for live demo</li>
+          <li>Add relevant topics/tags</li>
+        </ul>
+      </div>
+    `;
+    
+  } catch (error) {
+    result.innerHTML = `
+      <div class="error-card">
+        <h3>❌ Analysis Failed</h3>
+        <p>Private repo or invalid URL. Try public repos like:<br>
+        https://github.com/facebook/react</p>
+      </div>
+    `;
   }
   
   loading.classList.add('hidden');
   result.classList.remove('hidden');
-}
-
-function calculateScore(repo, commits, languages, files) {
-  let score = 0;
-  
-  // Documentation (20 pts)
-  score += repo.description ? 10 : 0;
-  score += repo.homepage ? 10 : 0;
-  
-  // Popularity (15 pts)
-  score += Math.min(repo.stargazers_count / 50, 15);
-  
-  // Activity (20 pts)
-  const commitCount = commits.length;
-  score += commitCount > 50 ? 15 : commitCount > 10 ? 10 : 5;
-  
-  // Languages (10 pts)
-  score += Object.keys(languages).length <= 2 ? 10 : 5;
-  
-  // Structure (15 pts)
-  const hasTests = files.some(f => f.name.match(/test|spec/i));
-  const hasReadme = files.some(f => f.name.toLowerCase() === 'readme.md');
-  score += hasReadme ? 10 : 0;
-  score += hasTests ? 5 : 0;
-  
-  // License & Professionalism (10 pts)
-  score += repo.license ? 8 : 0;
-  score += repo.topics && repo.topics.length > 0 ? 2 : 0;
-  
-  // Issues & Maintainability (10 pts)
-  score += repo.open_issues < 20 ? 10 : repo.open_issues < 100 ? 5 : 0;
-  
-  return Math.round(Math.min(score, 100));
-}
-
-function getLevel(score) {
-  if (score >= 85) return '🥇 Gold (Production Ready)';
-  if (score >= 70) return '🥈 Silver (Very Good)';
-  if (score >= 55) return '🥉 Bronze (Good Start)';
-  return 'Needs Improvement';
-}
-
-function displayResults(score, level, repo, commits, languages, files) {
-  const hasReadme = files.some(f => f.name.toLowerCase() === 'readme.md');
-  const hasTests = files.some(f => f.name.match(/test|spec/i));
-  
-  document.getElementById('result').innerHTML = `
-    <div class="score-card">
-      <h2>${score}/100</h2>
-      <div class="level">${level}</div>
-      <p><strong>${repo.full_name}</strong></p>
-    </div>
-    
-    <div class="metrics-grid">
-      <div class="metric">⭐ ${repo.stargazers_count.toLocaleString()}</div>
-      <div class="metric">📁 ${files.length} files</div>
-      <div class="metric">💾 ${Object.keys(languages).length} languages</div>
-      <div class="metric">🔄 ${commits.length} commits</div>
-    </div>
-    
-    <div class="summary-card">
-      <h3>📊 Breakdown</h3>
-      <p>${repo.description || 'No description'}</p>
-      <p><strong>Tests:</strong> ${hasTests ? '✅ Yes' : '❌ No'} | 
-         <strong>README:</strong> ${hasReadme ? '✅ Yes' : '❌ No'} |
-         <strong>License:</strong> ${repo.license?.name || 'None'}</p>
-    </div>
-    
-    <div class="roadmap-card">
-      <h3>🗺️ Actionable Improvements</h3>
-      <ul>
-        ${!repo.description ? '<li>Add project description</li>' : ''}
-        ${!hasReadme ? '<li>Create comprehensive README.md</li>' : ''}
-        ${!hasTests ? '<li>Add test files (tests/, __tests__/)</li>' : ''}
-        ${!repo.license ? '<li>Add MIT license</li>' : ''}
-        ${Object.keys(languages).length > 3 ? '<li>Focus on 1-2 languages</li>' : ''}
-        <li>Add GitHub topics & screenshots</li>
-      </ul>
-    </div>
-  `;
 }
