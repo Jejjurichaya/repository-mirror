@@ -1,77 +1,73 @@
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('analyzeBtn').addEventListener('click', analyzeRepo);
+  document.getElementById('analyzeBtn').onclick = analyzeRepo;
 });
 
 async function analyzeRepo() {
-  const input = document.getElementById('repoUrl');
+  const input = document.getElementById('repoUrl').value.trim();
   const loading = document.getElementById('loading');
   const result = document.getElementById('result');
   
-  const url = input.value.trim();
-  if (!url) return alert('Enter GitHub repo URL');
+  // Extract owner/repo from URL
+  const match = input.match(/github\.com[\/:]([^\/]+)\/([^\/]+)/);
+  if (!match) {
+    alert('Enter valid GitHub URL like: https://github.com/facebook/react');
+    return;
+  }
   
+  const [, owner, repoName] = match;
   loading.classList.remove('hidden');
   result.classList.add('hidden');
   
-  // Use CORS proxy + GitHub API
-  const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url.replace('github.com', 'api.github.com/repos'))}`;
-  
   try {
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    const repo = JSON.parse(data.contents);
+    // DIRECT GitHub API - Works on GitHub Pages!
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
+      headers: {
+        'User-Agent': 'Repository-Analyzer-Hackathon',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
     
-    // FAIR SCORING ALGORITHM
-    let score = 0;
+    if (!response.ok) throw new Error('Repo not found');
     
-    // Stars (25 pts max)
-    score += Math.min(repo.stargazers_count / 1000 * 25, 25);
+    const repo = await response.json();
     
-    // Forks (15 pts max)  
-    score += Math.min(repo.forks_count / 500 * 15, 15);
+    // PROFESSIONAL SCORING (Real data!)
+    const score = Math.min(100, 
+      Math.min(repo.stargazers_count / 2000, 25) +      // Stars (25)
+      Math.min(repo.forks_count / 1000, 20) +           // Forks (20)  
+      (repo.description ? 15 : 0) +                      // Description (15)
+      (repo.license ? 15 : 0) +                          // License (15)
+      (repo.open_issues < 50 ? 10 : 5) +                // Issues (10)
+      (repo.topics && repo.topics.length ? 10 : 0) +    // Topics (10)
+      5                                                   // Base score
+    );
     
-    // Description (10 pts)
-    score += repo.description ? 10 : 0;
-    
-    // License (10 pts)
-    score += repo.license ? 10 : 0;
-    
-    // Issues (10 pts - fewer = better)
-    score += repo.open_issues_count < 50 ? 10 : repo.open_issues_count < 200 ? 5 : 0;
-    
-    // Language count (10 pts - fewer = better)
-    score += Object.keys(repo.languages_url ? {} : {}).length <= 2 ? 10 : 5;
-    
-    // Activity bonus (20 pts)
-    score += Math.min((new Date() - new Date(repo.updated_at)) / 86400000 * -0.1 + 20, 20);
-    
-    score = Math.round(Math.max(0, Math.min(score, 100)));
-    const level = score >= 85 ? '🥇 Gold' : score >= 65 ? '🥈 Silver' : score >= 45 ? '🥉 Bronze' : 'Needs Work';
+    const level = score >= 85 ? '🥇 Gold' : score >= 65 ? '🥈 Silver' : '🥉 Bronze';
     
     result.innerHTML = `
       <div class="score-card">
-        <h2>${score}/100</h2>
+        <h2>${Math.round(score)}/100</h2>
         <div class="level">${level}</div>
         <p><strong>${repo.full_name}</strong></p>
         <p>⭐ ${repo.stargazers_count.toLocaleString()} | 🍴 ${repo.forks_count.toLocaleString()}</p>
       </div>
       
       <div class="metrics-grid">
-        <div class="metric"><strong>${repo.description ? '✅' : '❌'}</strong> Description</div>
-        <div class="metric"><strong>${repo.license?.name || 'None'}</strong> License</div>
-        <div class="metric"><strong>${repo.open_issues_count}</strong> Issues</div>
-        <div class="metric"><strong>${repo.language || 'Multi'}</strong> Language</div>
+        <div class="metric">📝 ${repo.description ? '✅ Has' : '❌ Add'} Description</div>
+        <div class="metric">⚖️ ${repo.license?.name || 'None'}</div>
+        <div class="metric">🐛 ${repo.open_issues} Issues</div>
+        <div class="metric">🏷️ ${repo.topics?.length || 0} Topics</div>
       </div>
       
       <div class="roadmap-card">
-        <h3>🗺️ Personalized Roadmap</h3>
+        <h3>🗺️ Improvement Roadmap</h3>
         <ul>
-          ${!repo.description ? '<li>Add project description (README)</li>' : ''}
-          ${!repo.license ? '<li>Add MIT license file</li>' : ''}
-          ${repo.open_issues_count > 10 ? '<li>Resolve open issues</li>' : ''}
-          <li>Add screenshots/demo GIF to README</li>
-          <li>Enable GitHub Pages for live demo</li>
-          <li>Add relevant topics/tags</li>
+          ${!repo.description ? '<li>Add compelling project description</li>' : ''}
+          ${!repo.license ? '<li>Add MIT/Apache license</li>' : ''}
+          ${repo.open_issues > 10 ? '<li>Resolve open issues</li>' : ''}
+          ${(!repo.topics || repo.topics.length === 0) ? '<li>Add GitHub topics</li>' : ''}
+          <li>Add screenshots/GIFs to README</li>
+          <li>Enable GitHub Pages demo</li>
         </ul>
       </div>
     `;
@@ -79,9 +75,12 @@ async function analyzeRepo() {
   } catch (error) {
     result.innerHTML = `
       <div class="error-card">
-        <h3>❌ Analysis Failed</h3>
-        <p>Private repo or invalid URL. Try public repos like:<br>
-        https://github.com/facebook/react</p>
+        <h3>❌ Cannot Analyze</h3>
+        <p>Private repo? Try public repos:<br>
+        • https://github.com/facebook/react<br>
+        • https://github.com/torvalds/linux<br>
+        • https://github.com/octocat/Hello-World
+        </p>
       </div>
     `;
   }
